@@ -65,12 +65,14 @@
 %%               LDFLAGS  - Link flags
 %%               ERL_CFLAGS  - default -I paths for erts and ei
 %%               ERL_LDFLAGS - default -L and -lerl_interface -lei
-%%               DRV_CFLAGS  - flags that will be used for compiling the driver
-%%               DRV_LDFLAGS - flags that will be used for linking the driver
+%%               DRV_CFLAGS  - flags that will be used for compiling
+%%               DRV_LDFLAGS - flags that will be used for linking
+%%               DRV_SHARED_LDFLAGS - flags that will be used for shared linking
 %%               ERL_EI_LIBDIR - ei library directory
 %%               CXX_TEMPLATE  - C++ command template
 %%               CC_TEMPLATE   - C command template
 %%               LINK_TEMPLATE - Linker command template
+%%               LINK_SHARED_TEMPLATE - Linker command template
 %%               PORT_IN_FILES - contains a space separated list of input
 %%                    file(s), (used in command template)
 %%               PORT_OUT_FILE - contains the output filename (used in
@@ -104,7 +106,6 @@ compile(Config, AppFile) ->
             ok;
         _ ->
             Env = setup_env(Config),
-            DSOEnv = setup_env(Config, default_env_shared()),
 
             %% Compile each of the sources
             {NewBins, ExistingBins} = compile_each(SourceFiles, Config, Env,
@@ -130,8 +131,8 @@ compile(Config, AppFile) ->
                       Intersection = sets:intersection(AllBins),
                       case needs_link(Target, sets:to_list(Intersection)) of
                           true ->
-                              Env1 = select_env(Target, Env, DSOEnv),
-                              Cmd = expand_command("LINK_TEMPLATE", Env1,
+                              LinkTemplate = select_link_template(Target),
+                              Cmd = expand_command(LinkTemplate, Env,
                                                    string:join(Bins, " "),
                                                    Target),
                               rebar_utils:sh(Cmd, [{env, Env}]);
@@ -158,21 +159,18 @@ clean(Config, AppFile) ->
                                                      expand_objects(Sources))]).
 
 setup_env(Config) ->
-    setup_env(Config, []).
-
-%% ===================================================================
-%% Internal functions
-%% ===================================================================
-
-setup_env(Config, ExtraEnv) ->
     %% Extract environment values from the config (if specified) and
     %% merge with the default for this operating system. This enables
     %% max flexibility for users.
-    DefaultEnvs  = filter_envs(ExtraEnv ++ default_env(), []),
+    DefaultEnvs  = filter_envs(default_env(), []),
     PortEnvs = rebar_config:get_list(Config, port_envs, []),
     OverrideEnvs = global_defines() ++ filter_envs(PortEnvs, []),
     RawEnv = apply_defaults(os_env(), DefaultEnvs) ++ OverrideEnvs,
     expand_vars_loop(merge_each_var(RawEnv, [])).
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
 
 global_defines() ->
     [begin
@@ -427,12 +425,12 @@ erl_interface_dir(Subdir) ->
         Dir -> Dir
     end.
 
-select_env(Target, Env, DSOEnv) ->
+select_link_template(Target) ->
     case filename:extension(Target) of
         [] ->
-            Env;
+            "LINK_TEMPLATE";
         Ext when Ext =:= ".so" orelse Ext =:= ".dll" ->
-            DSOEnv
+            "LINK_SHARED_TEMPLATE"
     end.
 
 default_env() ->
@@ -443,6 +441,8 @@ default_env() ->
       "$CC -c $CFLAGS $DRV_CFLAGS $PORT_IN_FILES -o $PORT_OUT_FILE"},
      {"LINK_TEMPLATE",
       "$CC $PORT_IN_FILES $LDFLAGS $DRV_LDFLAGS -o $PORT_OUT_FILE"},
+     {"LINK_SHARED_TEMPLATE",
+      "$CC $PORT_IN_FILES $LDFLAGS $DRV_SHARED_LDFLAGS -o $PORT_OUT_FILE"},
      {"CC", "cc"},
      {"CXX", "c++"},
      {"ERL_CFLAGS", lists:concat([" -I", erl_interface_dir(include),
@@ -450,7 +450,11 @@ default_env() ->
                                   " "])},
      {"ERL_LDFLAGS", " -L$ERL_EI_LIBDIR -lerl_interface -lei"},
      {"DRV_CFLAGS", "-g -Wall -fPIC $ERL_CFLAGS"},
+     {"DRV_LDFLAGS", "$ERL_LDFLAGS"},
+     {"DRV_SHARED_LDFLAGS", "-shared $ERL_LDFLAGS"},
      {"ERL_EI_LIBDIR", erl_interface_dir(lib)},
+     {"darwin", "DRV_SHARED_LDFLAGS",
+      "-bundle -flat_namespace -undefined suppress $ERL_LDFLAGS"},
      {"ERLANG_ARCH", rebar_utils:wordsize()},
      {"ERLANG_TARGET", rebar_utils:get_arch()},
 
@@ -473,14 +477,6 @@ default_env() ->
      {"darwin11.*-32", "CFLAGS", "-m32 $CFLAGS"},
      {"darwin11.*-32", "CXXFLAGS", "-m32 $CXXFLAGS"},
      {"darwin11.*-32", "LDFLAGS", "-arch i386 $LDFLAGS"}
-    ].
-
-%% default env only used for building a shared lib (DSO)
-default_env_shared() ->
-    [
-     {"DRV_LDFLAGS", "-shared $ERL_LDFLAGS"},
-     {"darwin", "DRV_LDFLAGS",
-      "-bundle -flat_namespace -undefined suppress $ERL_LDFLAGS"}
     ].
 
 source_to_bin(Source) ->
