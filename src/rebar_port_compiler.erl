@@ -224,13 +224,12 @@ expand_sources([Spec | Rest], Acc) ->
     expand_sources(Rest, Acc2).
 
 expand_objects(Sources) ->
-    Ext = object_extension(),
-    [expand_object(Ext, Src) || Src <- Sources].
+    [expand_object(".o", Src) || Src <- Sources].
 
 expand_object(Ext, {_Target, Source}) ->
     expand_object(Ext, Source);
 expand_object(Ext, Source) ->
-    filename:join([filename:dirname(Source), filename:basename(Source) ++ Ext]).
+    filename:join(filename:dirname(Source), filename:basename(Source) ++ Ext).
 
 compile_each([], _Config, _Env, NewBins, ExistingBins) ->
     {lists:reverse(NewBins), lists:reverse(ExistingBins)};
@@ -535,9 +534,8 @@ default_env() ->
 source_to_bin({_Target, Source}) ->
     source_to_bin(Source);
 source_to_bin(Source) ->
-    SrcExt = filename:extension(Source),
-    BinExt = object_extension(),
-    filename:rootname(Source, SrcExt) ++ BinExt.
+    Ext = filename:extension(Source),
+    filename:rootname(Source, Ext) ++ ".o".
 
 port_specs(Config, AppFile, Bins) ->
     Specs = make_port_specs(Config, AppFile, Bins),
@@ -546,14 +544,6 @@ port_specs(Config, AppFile, Bins) ->
             [switch_to_dll_or_exe(Spec) || Spec <- Specs];
         _ ->
             Specs
-    end.
-
-object_extension() ->
-    case os:type() of
-        {win32, nt} ->
-            ".obj";
-        _ ->
-            ".o"
     end.
 
 switch_to_dll_or_exe(Orig = {Name, Spec}) ->
