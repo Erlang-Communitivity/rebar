@@ -42,22 +42,10 @@
 %%                {arch_regex(), "priv/foo.so", ["c_src/foo.c"]}
 %%                {"priv/foo", ["c_src/foo.c"]}
 %%
-%% * port_sources (DEPRECATED) - Erlang list of filenames or wildcards
-%%                  to be compiled. May also contain a tuple
-%%                  consisting of a regular expression to be applied
-%%                  against the system architecture and a list of
-%%                  filenames or wildcards to include should the
-%%                  expression pass.
-%%
-%% * so_specs (DEPRECATED)  - Erlang list of tuples of the form
-%%               {"priv/so_name.so", ["c_src/object_file_name.o"]}
-%%               useful for building multiple *.so files.
-%%
 %% * port_envs - Erlang list of key/value pairs which will control
 %%               the environment when running the compiler and linker.
 %%
-%%               By default, the following variables
-%%               are defined:
+%%               By default, the following variables are defined:
 %%               CC       - C compiler
 %%               CXX      - C++ compiler
 %%               CFLAGS   - C compiler
@@ -67,12 +55,15 @@
 %%               ERL_LDFLAGS - default -L and -lerl_interface -lei
 %%               DRV_CFLAGS  - flags that will be used for compiling
 %%               DRV_LDFLAGS - flags that will be used for linking
-%%               DRV_SHARED_LDFLAGS - flags that will be used for shared linking
+%%               EXE_CFLAGS  - flags that will be used for compiling
+%%               EXE_LDFLAGS - flags that will be used for linking
 %%               ERL_EI_LIBDIR - ei library directory
-%%               CXX_TEMPLATE  - C++ command template
-%%               CC_TEMPLATE   - C command template
-%%               LINK_TEMPLATE - Linker command template
-%%               LINK_SHARED_TEMPLATE - Linker command template
+%%               DRV_CXX_TEMPLATE  - C++ command template
+%%               DRV_CC_TEMPLATE   - C command template
+%%               DRV_LINK_TEMPLATE - Linker command template
+%%               EXE_CXX_TEMPLATE  - C++ command template
+%%               EXE_CC_TEMPLATE   - C command template
+%%               EXE_LINK_TEMPLATE - Linker command template
 %%               PORT_IN_FILES - contains a space separated list of input
 %%                    file(s), (used in command template)
 %%               PORT_OUT_FILE - contains the output filename (used in
