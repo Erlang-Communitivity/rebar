@@ -35,6 +35,7 @@
               rebar_upgrade,
               rebar_utils,
               rebar_xref,
+              rebar_shell,
               getopt,
               mustache ]},
   {registered, []},
@@ -54,7 +55,8 @@
                             rebar_deps,
                             rebar_subdirs,
                             rebar_templater,
-                            rebar_cleaner
+                            rebar_cleaner,
+                            rebar_shell
                            ]},
 
          %% Dir specific processing modules
